@@ -1,0 +1,89 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <stdint.h>
+#include <algorithm>
+#include <array>
+
+using namespace std;
+
+typedef struct Point_t {
+  uint8_t id;
+  double p1, p2;
+} Point_t;
+
+int readFile(argv[1]) {
+  string buffer;
+  int elements = 0;
+  int id;
+  double pt1, pt2;
+  ifstream tspFile(argv[1]);
+  if (!tspFile.is_open()) {
+    cout << "File failed to load" << endl;
+  }
+  for (int i = 0; i < 7; i++) {
+    getline(tspFile, buffer);
+  }
+  while (getline(tspFile, buffer)) {
+    
+  }
+}
+
+bool uniqueChecker(int perm[], int n) {
+  int *count = new int[n];
+  for (int i = 0; i < n+1; i++) {
+    count[i] = 0;
+    //    cout << perm[i] << endl;
+  }
+  for (int i = 0; i < n; i++) {
+    count[perm[i]]++;
+    cout << perm[i] << " count: " << count[perm[i]] << endl;
+    if (count[perm[i]] > 1) {
+      delete count;
+      return false;
+    }
+  }
+  delete count;
+  return true;
+}
+
+int main (int argc, char *argv[]) {
+  string buffer;
+  if ( argc < 2 ) {
+    cout << "Include filename when executing." << endl;
+    return 0;
+  }
+  //  cout << argv[1] << endl;
+  ifstream tspFile (argv[1]);
+  //  tspFile.open(argv[1]);
+  if (!tspFile.is_open()) {
+    cout << "File failed to load" << endl;
+  }
+  while ( getline (tspFile, buffer) ) {
+    if (buffer[0] == '1' || buffer[0] == '2' || buffer [0] == '3' || buffer [0] == '4') {
+      cout << buffer << endl;
+    }
+  }
+  tspFile.close();
+  int i[] = {1,2,3,4,5,6,7,8,9,10,11};
+  int j[] = {1,2,3,4};
+
+  if (uniqueChecker(i,5)) {
+    cout << "True 1" << endl;
+  }
+  if (uniqueChecker(j,4)) {
+    cout << "True 2" << endl;
+  }
+  cout << endl << endl << endl;
+  cout << "--------------" << endl;
+  int counter = 1;
+  while (next_permutation(i,i+11)) {
+    counter++;
+    for (int a = 0; a < (int)(sizeof(i)/sizeof(int)); a++) {
+      cout << i[a] << ' ';
+    }
+    cout << endl;
+  }
+  cout << counter << endl;
+  return 0;
+}
