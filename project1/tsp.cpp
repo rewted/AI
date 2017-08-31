@@ -1,28 +1,26 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <stdint.h>
 #include <algorithm>
-#include <array>
 #include <sstream>
 #include <cmath>
 
 using namespace std;
 
+// data structure to hold point information
 typedef struct Point_t {
   int id;
   double p1, p2;
 } Point_t;
 
+// used to insert data into the point structure
 void insert(Point_t *point, int i, double pt1, double pt2) {
   point->id = i;
   point->p1 = pt1;
   point->p2 = pt2;
-  /*  cout << point->id << " " << i << endl;
-  cout << point->p1 << " " << pt1 << endl;
-  cout << point->p2 << " " << pt2 << endl;*/
 }
 
+// reads the specified file and loads values into the data structure
 int readFile(char *fileName, Point_t *points) {
   string buffer;
   string tmp;
@@ -34,9 +32,13 @@ int readFile(char *fileName, Point_t *points) {
     cout << "File failed to load" << endl;
     return -1;
   }
+
+  // cycles through first 7 lines to get to the values
   for (int i = 0; i < 7; i++) {
     getline(tspFile, buffer);
   }
+
+  // used to split strings and typecast to appropriate types
   while (getline(tspFile, buffer)) {
     istringstream iss(buffer);
     iss >> tmp;
@@ -46,6 +48,8 @@ int readFile(char *fileName, Point_t *points) {
     iss >> tmp;
     pt2 = stod(tmp);
     iss >> tmp;
+
+    // error check to make sure right values are being inserted
     if (elements == id-1) {
       cout << id << " " << pt1 << " " << pt2 << endl;
       insert((points+elements), id, pt1, pt2);
@@ -57,6 +61,7 @@ int readFile(char *fileName, Point_t *points) {
   return elements;
 }
 
+// calculates the distance between two points
 double distanceCalc(Point_t firstPoint, Point_t secondPoint) {
   double distance;
   double dx = secondPoint.p1 - firstPoint.p1;
@@ -65,12 +70,16 @@ double distanceCalc(Point_t firstPoint, Point_t secondPoint) {
   return distance;
 }
 
+// prints values of the Point_t data structure
+// primarily used for debugging
 void printValues(Point_t *points, int total) {
   for (int i = 0; i<total; i++) {
     cout << (points+i)->id << " " << points[i].p1 << " " << points[i].p2 << endl;
   }
 }
 
+// given a route as an int array, an array of points, and number of points
+// calculate the distance traveled traversing specified route
 double routeDistance(int *route, Point_t *points, int numPoints){
   double distance = 0;
   int pos1, pos2;
@@ -79,80 +88,84 @@ double routeDistance(int *route, Point_t *points, int numPoints){
     pos1 = route[i];
     pos2 = route[i+1];
     distance = distance + distanceCalc(points[pos1], points[pos2]);
-    //cout << i << ". From: " << pos1 << " to " << pos2 << " " << distanceCalc(points[pos1], points[pos2]) << endl;
   }
   pos1 = route[numPoints-1];
   pos2 = route[0];
-  //  cout << numPoints-1 << ". From: " << route[numPoints-1] << " to " << route[0] << " " << distanceCalc(points[pos1], points[pos2]) << endl;;
-  //  cout << distance << endl;;
   return distance;
 }
   
-/*
-bool uniqueChecker(int perm[], int n) {
-  int *count = new int[n];
-  for (int i = 0; i < n+1; i++) {
-    count[i] = 0;
-    //    cout << perm[i] << endl;
-  }
-  for (int i = 0; i < n; i++) {
-    count[perm[i]]++;
-    cout << perm[i] << " count: " << count[perm[i]] << endl;
-    if (count[perm[i]] > 1) {
-      delete count;
-      return false;
-    }
-  }
-  delete count;
-  return true;
-}
-*/
-
-
 int main (int argc, char *argv[]) {
+  // no file specified during execution
   if ( argc < 2 ) {
     cout << "Include filename when executing." << endl;
     return 0;
   }
+  // create an array for the points
   Point_t points[20];
+
+  // number of points to visit
   int totalElements = readFile(argv[1], points);
+
+  // holds specified values to compare against
   double distance, shortest, longest;
-  //cout << "Total Elements: " << totalElements << endl;
+
+  // represents route we are checking
   int *i = new int[totalElements];
+
+  // stores shortest route
   int *shortRoute = new int[totalElements];
+
+  // stores longest route
   int *longestRoute = new int[totalElements];
+
+  // initializes to the first route
   for (int j = 0; j < totalElements; j++) {
     i[j] = j;
     shortRoute[j] = j;
     longestRoute[j] = j;
   }
-  //distance = routeDistance(i, points, totalElements);
-  //cout << "Distance traveled: " << distance << endl;
-  //cout << endl << endl << endl;
   cout << "--------------" << endl;
+
+  // keeps track of the number of permutations
   int counter = 1;
+
+  // since only one route has been considered so far
+  // it is both the shortest and longest
   shortest = routeDistance(i, points, totalElements);
   longest = shortest;
+
+  // used to iterate to the next permutation
   while (next_permutation(i,i+totalElements)) {
+
+    // increments the permutation counter
     counter++;
     distance = routeDistance(i, points, totalElements);
+
+    // if true current route is now the shortest
     if (distance < shortest) {
       for (int j = 0; j < totalElements; j++) {
 	shortRoute[j] = i[j];
 	}
       shortest = distance;
     }
+
+    // if true current route is now the longest
     if (distance > longest) {
       for (int j = 0; j < totalElements; j++) {
 	longestRoute[j] = i[j];
       }
       longest = distance;
     }
+
+    // used to output the route and distance calculated
     for (int a = 0; a < totalElements; a++) {
       cout << i[a] << ' ';
     }
     cout << distance << endl;
   }
+
+  // output the results found
+  cout << "--------------" << endl;
   cout << "Shortest Route: ";
   for (int j = 0; j < totalElements; j++) {
     cout << shortRoute[j] << " "; 
@@ -163,7 +176,9 @@ int main (int argc, char *argv[]) {
     cout << longestRoute[j] << " ";
   }
   cout << "DIstance: " << longest << endl;
-  cout << counter << endl;
+  cout << "Routes considered: " << counter << endl;
+
+  // deallocate
   delete [] i;
   delete [] shortRoute;
   delete [] longestRoute;
