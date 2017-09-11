@@ -63,7 +63,16 @@ int adjM5[10][11] = { {0,0,0,0,0,0,0,0,0,1,0}, // 1
                       {0,0,0,0,0,0,0,1,0,0,0}, // 9
                       {0,0,0,0,0,0,0,0,1,0,0}};
 
-
+int adjM6[10][11] = { {0,1,0,0,0,0,0,0,0,1,0}, // 1
+                      {0,0,0,0,0,0,0,0,0,0,0},
+                      {0,0,0,0,0,0,0,0,0,0,0}, // 3
+                      {0,0,0,0,0,0,0,0,0,0,0},
+                      {0,0,0,0,0,0,0,0,0,0,0}, // 5
+                      {0,0,0,0,0,0,0,0,0,0,0},
+                      {0,0,0,0,0,0,0,0,0,0,0}, // 7
+                      {0,0,0,0,0,0,0,0,0,0,0},
+                      {0,0,0,0,0,0,0,0,0,0,0}, // 9
+                      {0,0,0,0,0,0,0,0,0,0,0}};
 
 
 bool bfs (vector<int> , int , int [][11], int *);
@@ -83,7 +92,7 @@ int main () {
   // keeps track of number of steps taken
   int steps = 0;
   // if bfs returns true a path has been found
-  if (bfs(start, goal, adjM, visited)) {
+  if (bfs(start, goal, adjM , visited)) {
     cout << "Path found " << endl;
     // displays the node and parent relationship
     for (int k = 0; k < 11; k++) {
