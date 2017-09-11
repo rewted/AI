@@ -95,7 +95,7 @@ int main () {
   int level = 1;
   int steps = 0;
   // dfs 
-  if(dfs(start, goal, adjM2, visited, level, nodeLevel)) {
+  if(dfs(start, goal, adjM, visited, level, nodeLevel)) {
     // displays the node and parent relationship
     for (int i = 0; i < 11; i++) {
       cout << "Node: " << i << " Parent: " << visited[i] << endl;
