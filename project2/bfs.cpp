@@ -1,11 +1,13 @@
 #include <iostream>
-#include <queue>
 #include <vector>
 #include <algorithm>
 
 using namespace std;
 
 // hard coded set of edges
+// first adjM is provided for the project
+// rest are just various adjacency matrices
+// for testing purposes.
 int adjM[10][11] = { {0,1,1,1,0,0,0,0,0,0,0}, // 1
                      {0,0,1,0,0,0,0,0,0,0,0},
                      {0,0,0,1,1,0,0,0,0,0,0}, // 3
@@ -50,53 +52,54 @@ int adjM4[10][11] = { {0,1,0,0,0,0,0,0,0,0,0}, // 1
                       {0,0,0,0,0,0,0,0,0,1,0}, // 9
                       {0,0,0,0,0,0,0,0,0,0,1}};
 
+int adjM5[10][11] = { {0,0,0,0,0,0,0,0,0,1,0}, // 1
+                      {0,0,0,0,0,0,0,0,0,0,1},
+                      {0,1,0,0,0,0,0,0,0,0,0}, // 3
+                      {0,0,1,0,0,0,0,0,0,0,0},
+                      {0,0,0,1,0,0,0,0,0,0,0}, // 5
+                      {0,0,0,0,1,0,0,0,0,0,0},
+                      {0,0,0,0,0,1,0,0,0,0,0}, // 7
+                      {0,0,0,0,0,0,1,0,0,0,0},
+                      {0,0,0,0,0,0,0,1,0,0,0}, // 9
+                      {0,0,0,0,0,0,0,0,1,0,0}};
 
-typedef struct vertex {
-  int id;
-  double p1, p2;
-  int * edges;
-} vert;
+
+
 
 bool bfs (vector<int> , int , int [][11], int *);
 vector<int> findEdges( int, int [][11], int *);
 
 int main () {
+  // array to keep track of nodes that have been visited
+  // also keeps track of the parent of the node
   int visited[11] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+  // keeps track of the path taken
   vector<int> path;
-  /*  
-  while (j < 10) {
-    vector<int> testVector = findEdges(j, adjM, visited);
-    vector<int>::iterator it = testVector.begin();
-    while (it != testVector.end()) {
-      //cout << *it << ", ";
-      it++;
-    }
-    //cout << endl;
-    i++;
-    j++;
-    testVector.clear();
-  }/*
-  cout << endl;
-  for (int i = 0; i < 11; i++) {
-    cout << "Parent: " << i+1 << " " << visited[i]+1 << endl;;
-    }*/
+  // a queue using a vector, queue the starting point
   vector<int> start;
   start.push_back(0);
+  // set the goal node
   int goal = 10;
+  // keeps track of number of steps taken
   int steps = 0;
-
-  if (bfs(start, goal, adjM4, visited)) {
+  // if bfs returns true a path has been found
+  if (bfs(start, goal, adjM, visited)) {
     cout << "Path found " << endl;
+    // displays the node and parent relationship
     for (int k = 0; k < 11; k++) {
       cout << "Node: " << k << " Parent: " << visited[k] << endl;
-      }
+    }
+    // iterates through the tree to generate the path taken
     int i = goal;
-    while (i != 0) {
+    while (i != start[0]) {
       path.push_back(visited[i]);
       i = visited[i];
     }
+    // since the path is stored backwards iterate from the end
+    // to the beginning and output the path along with steps.
     vector<int>::iterator pathIt = path.end();
     cout << "------------" << endl;
+    cout << "Start: " << start[0] << " Goal: " << goal << endl;
     cout << "Path taken: " << endl;
     while (pathIt != path.begin()) {
       pathIt--;
@@ -106,20 +109,26 @@ int main () {
     cout << goal << endl;
     cout << steps << " steps taken" << endl;
   }
-  
   return 0;
 }
 
 bool bfs (vector<int> queue, int goal, int matrix[][11], int visited[]) {
+  // check to see if start and goal are the same
   if (queue[0] == goal && queue.size() == 1) {
-    cout << "Goal found" << endl;
-    visited[goal] == queue[0];
+    cout << "Goal found, start and goal are the same" << endl;
     return true;
   }
+  // initialize an iterator to cycle through the vector
   vector<int>::iterator it = queue.begin();
+  // initialize a vector to act as the queue
   vector<int> newQueue;
+  // goes through everything in the queue
+  // generates the queue for the next level
+  // dedup and remove elements from queue
+  // that are currently visited
   while (it != queue.end()) {
     cout << *it << " current node" << endl;
+    // finds all the edges of the node and stores them in edges
     vector<int> edges = findEdges(*it, matrix, visited);
     // goal is contained in one of the edges
     if (std::find(edges.begin(),edges.end(), goal) != edges.end()) {
@@ -142,7 +151,8 @@ bool bfs (vector<int> queue, int goal, int matrix[][11], int visited[]) {
     if (std::find(newQueue.begin(), newQueue.end(), *it) != newQueue.end()) {
       newQueue.erase(std::find(newQueue.begin(), newQueue.end(), *it));
       cout << "Currently at node in queue, removing" << endl;
-    }    
+    }
+    // increment the iterator and clear edges
     edges.clear();
     it++;
   }
@@ -154,23 +164,26 @@ bool bfs (vector<int> queue, int goal, int matrix[][11], int visited[]) {
   }
   cout << "------------------------" << endl;
   cout << "Going down one level" << endl;
+  // recursively call bfs until a base condition is hit
   return bfs(newQueue, goal, matrix, visited);
-  
 }
 
 // hard coded for size 11
 vector<int> findEdges (int node, int matrix[][11], int visited[]) {
   //  int count = 0;
   vector<int> edgesRet;
+  // checks the adj matrix for edges
   for (int i = 0; i < 11; i++) {
+    // if edge is found push it to vector
     if (matrix[node][i] == 1) {
       edgesRet.push_back(i);
+      // sets the parent if it hasn't been set already
+      // will set in numerical order if there is a tie
       if (visited[i] == -1) {
 	visited[i] = node;
-	//cout << "Parent: " << i+1 << " " << visited[i]+1 << endl;
       }
-      //count++;
     }
   }
+  // returns a vector with all edges of current node
   return edgesRet;
 }
