@@ -74,7 +74,16 @@ int adjM6[10][11] = { {0,1,1,1,1,1,1,1,1,1,0}, // 1
                       {0,0,0,0,0,0,0,0,0,0,0}, // 9
                       {0,0,0,0,0,0,0,0,0,0,0}};
 
-
+int adjM7[10][11] = { {0,1,0,0,0,0,0,0,0,1,0}, // 1
+                      {0,0,0,0,0,0,0,0,0,0,1},
+                      {0,0,0,0,0,0,0,0,0,0,0}, // 3
+                      {0,0,0,0,0,0,0,0,0,0,0},
+                      {0,0,0,1,0,0,0,0,0,0,0}, // 5
+                      {0,0,0,0,1,0,0,0,0,0,0},
+                      {0,0,0,0,0,1,0,0,0,0,0}, // 7
+                      {0,0,0,0,0,0,1,0,0,0,0},
+                      {0,0,0,0,0,0,0,1,0,0,0}, // 9
+                      {0,0,0,0,0,0,0,0,1,0,0}};
 
 bool dfs (vector<int> , int, int [][11], int *, int, int []);
 vector<int> findEdges( int, int [][11], int *);
@@ -95,7 +104,7 @@ int main () {
   int level = 1;
   int steps = 0;
   // dfs 
-  if(dfs(start, goal, adjM, visited, level, nodeLevel)) {
+  if(dfs(start, goal, adjM7, visited, level, nodeLevel)) {
     // displays the node and parent relationship
     for (int i = 0; i < 11; i++) {
       cout << "Node: " << i << " Parent: " << visited[i] << endl;
@@ -175,7 +184,9 @@ bool dfs (vector<int> queue, int goal, int matrix[][11], int visited[], int leve
     if (level <= nodeLevel[*it] || nodeLevel[*it] == -1) {
       nextNode.push_back(*it);
       cout << "Moving deeper to node: " << nextNode[0] << endl;
-      pathFound = dfs(nextNode, goal, matrix, visited, level+1, nodeLevel);
+      if (dfs(nextNode, goal, matrix, visited, level+1, nodeLevel)) {
+	pathFound = true;
+      }
       nextNode.pop_back();
     }
     // iterate the pointer that looks at child nodes
