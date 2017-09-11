@@ -104,7 +104,7 @@ int main () {
   int level = 1;
   int steps = 0;
   // dfs 
-  if(dfs(start, goal, adjM7, visited, level, nodeLevel)) {
+  if(dfs(start, goal, adjM, visited, level, nodeLevel)) {
     // displays the node and parent relationship
     for (int i = 0; i < 11; i++) {
       cout << "Node: " << i << " Parent: " << visited[i] << endl;
@@ -173,7 +173,9 @@ bool dfs (vector<int> queue, int goal, int matrix[][11], int visited[], int leve
     if (nodeLevel[children[i]] == -1 || level < nodeLevel[children[i]]) {
       nodeLevel[children[i]] = level;
       // set the children node
-      visited[children[i]] = queue[0];
+      if (visited[children[i]] == -1 || visited[children[i]] > queue[0]) {
+	visited[children[i]] = queue[0];
+      }
       cout << "Assigning child: " << children[i] << " level: " << level << endl;  
     }
   }
