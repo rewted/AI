@@ -187,6 +187,9 @@ bool dfs (vector<int> queue, int goal, int matrix[][11], int visited[], int leve
       if (dfs(nextNode, goal, matrix, visited, level+1, nodeLevel)) {
 	pathFound = true;
       }
+      if (pathFound != true) {
+	pathFound = false;
+      }
       nextNode.pop_back();
     }
     // iterate the pointer that looks at child nodes
