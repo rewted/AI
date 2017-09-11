@@ -95,29 +95,33 @@ int main () {
   int level = 1;
   int steps = 0;
   // dfs 
-  dfs(start, goal, adjM, visited, level, nodeLevel);
-  // displays the node and parent relationship
-  for (int i = 0; i < 11; i++) {
-    cout << "Node: " << i << " Parent: " << visited[i] << endl;
+  if(dfs(start, goal, adjM2, visited, level, nodeLevel)) {
+    // displays the node and parent relationship
+    for (int i = 0; i < 11; i++) {
+      cout << "Node: " << i << " Parent: " << visited[i] << endl;
+    }
+    // iterates through the tree to generate the path taken
+    int i = goal;
+    while (i != start[0]) {
+      path.push_back(visited[i]);
+      i = visited[i];
+    }
+    // since the path is stored backwards iterate from the end
+    // to the beginning and output the path along with steps.
+    vector<int>::iterator pathIt = path.end();
+    cout << endl << "------------------" << endl;
+    cout << "Path taken: " << endl;
+    while (pathIt != path.begin()) {
+      pathIt--;
+      steps++;
+      cout << *pathIt << " -> " ;
+    }
+    cout << goal << endl;
+    cout << steps << " steps taken" << endl;
   }
-  // iterates through the tree to generate the path taken
-  int i = goal;
-  while (i != start[0]) {
-    path.push_back(visited[i]);
-    i = visited[i];
+  else {
+    cout << "Path not found" << endl;
   }
-  // since the path is stored backwards iterate from the end
-  // to the beginning and output the path along with steps.
-  vector<int>::iterator pathIt = path.end();
-  cout << endl << "------------------" << endl;
-  cout << "Path taken: " << endl;
-  while (pathIt != path.begin()) {
-    pathIt--;
-    steps++;
-    cout << *pathIt << " -> " ;
-  }
-  cout << goal << endl;
-  cout << steps << " steps taken" << endl;
   return 0;
 }
 
@@ -147,14 +151,17 @@ bool dfs (vector<int> queue, int goal, int matrix[][11], int visited[], int leve
   vector<int>::iterator it = children.begin();
   // no children for this parent node
   if (children.size() == 0) {
+    cout << "---------------" << endl;
     cout << "Dead end node: " << queue[0]  << endl;
+    cout << "Moving back up a level" << endl;
+    cout << "---------------" << endl;
     pathFound = false;
     return pathFound;
   }
   // loop to keep track of levels and parent child relationship
   for (int i = 0; i < (int)children.size(); i++) {
     // set the node level for the children if not set yet (-1) or found at a lower level
-    if (nodeLevel[children[i]] == -1 || nodeLevel[children[i]] > level) {
+    if (nodeLevel[children[i]] == -1 || level < nodeLevel[children[i]]) {
       nodeLevel[children[i]] = level;
       // set the children node
       visited[children[i]] = queue[0];
@@ -166,9 +173,6 @@ bool dfs (vector<int> queue, int goal, int matrix[][11], int visited[], int leve
   while (it != children.end()) {
     // if the level we are at is lower than previously visited nodes
     if (level <= nodeLevel[*it] || nodeLevel[*it] == -1) {
-      if (nodeLevel[*it] == level) {
-	cout << "wtf" << endl;
-      }
       nextNode.push_back(*it);
       cout << "Moving deeper to node: " << nextNode[0] << endl;
       pathFound = dfs(nextNode, goal, matrix, visited, level+1, nodeLevel);
@@ -194,4 +198,3 @@ vector<int> findEdges (int node, int matrix[][11], int visited[]) {
   // returns a vector with all edges of current node
   return edgesRet;
 }
-
