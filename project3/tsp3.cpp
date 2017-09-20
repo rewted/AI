@@ -53,22 +53,6 @@ int main (int argc, char *argv[]) {
     insertNextPoint(points, &path, &notInPath, totalCount);
   }
   routeDistance(path, points, totalCount);
-  /*
-  insertNextPoint(points, &path, &notInPath, totalCount);
-  insertNextPoint(points, &path, &notInPath, totalCount);
-  insertNextPoint(points, &path, &notInPath, totalCount);
-  for (int i = 0; i < 10; i++) {
-    insertNextPoint(points, &path, &notInPath, totalCount);
-  }
-  */
-  /*  insertNextPoint(points, &path, &notInPath, totalCount);
-  insertNextPoint(points, &path, &notInPath, totalCount);
-  insertNextPoint(points, &path, &notInPath, totalCount);
-  insertNextPoint(points, &path, &notInPath, totalCount);
-  insertNextPoint(points, &path, &notInPath, totalCount);
-  insertNextPoint(points, &path, &notInPath, totalCount);
-  insertNextPoint(points, &path, &notInPath, totalCount);
-  */
   return 0;
 }
 
@@ -136,24 +120,21 @@ void printValues (Point *points, int total) {
 
 double routeDistance (list<int> route, Point *points, int numPoints) {
   double distance = 0;
-  //int pos1, pos2;
-  distance = distanceCalc(points[*route.begin()-1], points[*route.end()-1]);
   list<int>::iterator it = route.begin();
-  while (it != route.end()) {
-    cout << *it << " ";
+  list<int>::iterator it2 = route.begin();
+  advance(it2,numPoints-1);
+  distance = distanceCalc(points[*it-1], points[*it2-1]);
+
+  it2 = route.begin();
+  it2++;
+  while (it2 != route.end()) {
+    distance = distance + distanceCalc(points[*it-1], points[*it2-1]);
     it++;
+    it2++;
   }
   cout << endl;
-  cout << *route.end() << " " << distance << endl;
-  /*
-  for (int i = 0; i < numPoints-1; i++) {
-    pos1 = route[i];
-    pos2 = route[i+1];
-    distance = distance + distanceCalc(points[pos1], points[pos2]);
-  }
-  */
-  //  pos1 = route[numPoints-1];
-  //  pos2 = route[0];
+  cout << "-------------" << endl;
+  cout << "Total distance of route: " << distance << endl;
   return distance;
 }
 
@@ -269,19 +250,16 @@ Point insertNextPoint(Point *points, list<int> *path, list<int> *notInPath, int 
       remove++;
     }
     it = path->begin();
+    cout << "----------------" << endl;
     cout << "Current Path: " << endl;
     while (it != path->end()){
-      cout << *it << endl;
+      cout << *it;
       it++;
+      if (it != path->end()) {
+	cout << " -> ";
+      }
     }
-    /*
-    remove = notInPath->begin();
-    cout << "Current nodes not connected to path: " << endl;
-    while (remove != notInPath->end()) {
-      cout << *remove << endl;
-      remove++;
-    }
-    */
+    cout << endl;
     return points[0];
   }
   return points[0];
