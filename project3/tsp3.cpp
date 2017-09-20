@@ -17,7 +17,7 @@ void insert (Point *, int, double, double);
 int readFile (char *, Point *);
 double distanceCalc (Point, Point);
 void printValues (Point *, int);
-double routeDistance (int *, Point *, int);
+double routeDistance (list<int>, Point *, int);
 Point findStart (Point *, int);
 Point insertNextPoint (Point *, list<int> *, list<int> *, int);
 void initializeList (Point *,list<int> *, list<int> *, int);
@@ -49,8 +49,26 @@ int main (int argc, char *argv[]) {
   }
   */
   path.push_back(start.id);
+  while(notInPath.size() > 0) {
+    insertNextPoint(points, &path, &notInPath, totalCount);
+  }
+  routeDistance(path, points, totalCount);
+  /*
   insertNextPoint(points, &path, &notInPath, totalCount);
-
+  insertNextPoint(points, &path, &notInPath, totalCount);
+  insertNextPoint(points, &path, &notInPath, totalCount);
+  for (int i = 0; i < 10; i++) {
+    insertNextPoint(points, &path, &notInPath, totalCount);
+  }
+  */
+  /*  insertNextPoint(points, &path, &notInPath, totalCount);
+  insertNextPoint(points, &path, &notInPath, totalCount);
+  insertNextPoint(points, &path, &notInPath, totalCount);
+  insertNextPoint(points, &path, &notInPath, totalCount);
+  insertNextPoint(points, &path, &notInPath, totalCount);
+  insertNextPoint(points, &path, &notInPath, totalCount);
+  insertNextPoint(points, &path, &notInPath, totalCount);
+  */
   return 0;
 }
 
@@ -116,15 +134,24 @@ void printValues (Point *points, int total) {
   }
 }
 
-double routeDistance (int *route, Point *points, int numPoints) {
+double routeDistance (list<int> route, Point *points, int numPoints) {
   double distance = 0;
-  int pos1, pos2;
-  distance = distanceCalc(points[route[0]], points[route[numPoints-1]]);
+  //int pos1, pos2;
+  distance = distanceCalc(points[*route.begin()-1], points[*route.end()-1]);
+  list<int>::iterator it = route.begin();
+  while (it != route.end()) {
+    cout << *it << " ";
+    it++;
+  }
+  cout << endl;
+  cout << *route.end() << " " << distance << endl;
+  /*
   for (int i = 0; i < numPoints-1; i++) {
     pos1 = route[i];
     pos2 = route[i+1];
     distance = distance + distanceCalc(points[pos1], points[pos2]);
   }
+  */
   //  pos1 = route[numPoints-1];
   //  pos2 = route[0];
   return distance;
@@ -154,6 +181,7 @@ Point insertNextPoint(Point *points, list<int> *path, list<int> *notInPath, int 
     while (remove != notInPath->end()) {
       if (*remove == *path->begin()) {
 	cout << "Start has been chosen. Removing: " << *remove << endl;
+	cout << points[*remove-1].id << " " << points[*remove-1].x << " " << points[*remove-1].y << endl;
 	remove = notInPath->erase(remove);
       }
       remove++;
@@ -163,8 +191,11 @@ Point insertNextPoint(Point *points, list<int> *path, list<int> *notInPath, int 
     tmpDistance = -1;
     list<int>::iterator it = notInPath->begin();
     while(it != notInPath->end()) {
-      tmpDistance2 = distanceCalc(points[*path->begin()], points[*it]);
+      tmpDistance2 = distanceCalc(points[*path->begin()-1], points[*it-1]);
       cout << "Distance from: " << *path->begin() << " to " << points[*it-1].id << " is " << tmpDistance2 << endl;
+      if (tmpDistance2 == 0) {
+	cout << "Dang" << endl; 
+      }
       if (tmpDistance < 0 || tmpDistance > tmpDistance2) {
 	tmpDistance = tmpDistance2;
 	index = *it-1;
@@ -178,7 +209,7 @@ Point insertNextPoint(Point *points, list<int> *path, list<int> *notInPath, int 
     it = notInPath->begin();
     while (it != notInPath->end()) {
       if (*it == points[index].id) {
-	cout << "Deleting point: " << *it << " from unconnected node list " << endl;
+	cout << "Removing node: " << *it << " from unconnected node list " << endl;
 	it = notInPath->erase(it);
 	it = notInPath->end()--;
       }
@@ -187,18 +218,70 @@ Point insertNextPoint(Point *points, list<int> *path, list<int> *notInPath, int 
     return points[index];
   }
   else {
+    cout << "\n----------------------------\n";
     int edges = path->size()-1;
+    int k = 0;
     int * closestToEdge = new int[edges];
     double * distances = new double[edges];
-    for (int i = 0; i < edges; i++) {
+    list<int>::iterator vertex1 = path->begin();
+    list<int>::iterator vertex2 = vertex1;
+    vertex2++;
+    while(vertex2 != path->end()) {
+      cout << "-------------Currently looking at edge: " << k << endl;
       list<int>::iterator it = notInPath->begin();
       double tmpDistance = -1;
       double tmpDistance2;
       while(it != notInPath->end()) {
-	
+	findPoint(points[*vertex1-1],points[*vertex2-1],points[*it-1], &tmpDistance2);
+	if(tmpDistance == -1 || tmpDistance > tmpDistance2) {
+	  closestToEdge[k] = *it;
+	  tmpDistance = tmpDistance2;
+	  cout << "New closer is now: " << *it << " at distance: " << tmpDistance << endl;
+	}
 	it++;
       }
+      distances[k] = tmpDistance;
+      vertex1++;
+      vertex2++;
+      k++;
     }
+    double shortest = -1;
+    double tmpEst;
+    int whichEdge;
+    for (int i = 0; i < edges; i++) {
+      tmpEst = distances[i];
+      if (shortest == -1 || shortest > tmpEst) {
+	shortest = tmpEst;
+	whichEdge = i;
+      }
+    }
+    cout << closestToEdge[whichEdge] << " " << distances[whichEdge] << endl;
+    list<int>::iterator it = path->begin();
+    list<int>::iterator remove = notInPath->begin();
+    advance(it,whichEdge+1);
+    path->insert(it,closestToEdge[whichEdge]);
+    cout << "Inserting node: " << closestToEdge[whichEdge] << " into path on edge: " << whichEdge << endl;
+    while (remove != notInPath->end()) {
+      if (*remove == closestToEdge[whichEdge]) {
+	cout << "Removing node: " << *remove << " from unconnected node list " << endl;
+	remove = notInPath->erase(remove);
+      }
+      remove++;
+    }
+    it = path->begin();
+    cout << "Current Path: " << endl;
+    while (it != path->end()){
+      cout << *it << endl;
+      it++;
+    }
+    /*
+    remove = notInPath->begin();
+    cout << "Current nodes not connected to path: " << endl;
+    while (remove != notInPath->end()) {
+      cout << *remove << endl;
+      remove++;
+    }
+    */
     return points[0];
   }
   return points[0];
@@ -244,19 +327,19 @@ int findPoint(Point p1, Point p2, Point p0, double * cost) {
   double ptDistance3 = distanceCalc(p2,tmpPoint);
   if (ptDistance1 < ptDistance2 || ptDistance1 < ptDistance3) {
     // use distance to nearest vertex
-    cout << "Use a vertex " << endl;
+    //cout << "Use a vertex " << endl;
     if (ptDistance2 < ptDistance3) {
-      cout << "Use first vertex " << endl;
       *cost = distanceCalc(p1, p0);
+      cout << "Distance from: " << p0.id << " to " << p1.id << " is " << *cost << endl; 
       return -1;
     }
     else {
-      cout << "Use second vertex " << endl;
       *cost = distanceCalc(p2, p0);
+      cout << "Distance from: " << p0.id << " to " << p2.id << " is " << *cost << endl;
       return 1;
     }
   }
-  cout << "Projects onto an edge " << endl;
   *cost = distance;
+  cout << p0.id << " Projects onto an edge with distance:  " << *cost << endl;
   return 0;
 }
