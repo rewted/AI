@@ -18,7 +18,7 @@ typedef struct Point {
 } Point;
 
 typedef struct Chromo {
-  int id;
+  int rank;
   list<int> tour;
   double fitness;
 } Chromo;
@@ -26,7 +26,6 @@ typedef struct Chromo {
 typedef struct Population {
   int generation;
   double averageFitness, bestFitness, worstFitness;
-  int averageId, bestId, worstId;
   vector<Chromo> citizens;
 } Population;
 
@@ -64,7 +63,6 @@ int readFile (char * fileName, Point *points) {
     iss >> tmp;
     y = stod (tmp);
     iss >> tmp;
-
     if (count == id -1) {
       insert ((points+count), id, x, y);
     }
@@ -113,20 +111,113 @@ void generatePopulation (Population *a) {
     //cout << endl << "-------------------" << endl;
     tmpChromo.tour = path;
     path.clear();
-    tmpChromo.id = i;
+    tmpChromo.rank = i;
     tmpChromo.fitness = routeDistance (tmpChromo.tour, points, totalCount);
     a->citizens.push_back(tmpChromo);
   }
 }
 
-void sortPopulation (Population *a) {
+void generationSort (Population *a) {
   vector<Chromo> b;
   vector<Chromo> c = a->citizens;
-  double lowest = 999999999999;
-  for (int i = 0; i < 100; i++) {
-    
+  vector<Chromo>::iterator it;
+  vector<Chromo>::iterator tmpIt;
+  int index;
+  int i = 0;
+  double lowest;
+  while (c.size() != 0) {
+    lowest = 999999999999;
+    it = c.begin();
+    i = 0;
+    while (it != c.end()) {
+      if (c[i].fitness < lowest) {
+	lowest = c[i].fitness;
+	index = i;
+	tmpIt = it;
+      }
+      it++;
+      i++;
+    }
+    b.push_back(c[index]);
+    c.erase(tmpIt);
   }
-  
+  a->citizens = b;
+  for (int j = 0; j < 100; j++) {
+    a->citizens[j].rank = i;
+  }
+}
+
+void generationStats (Population *a) {
+  double average = 0;
+  for (int i = 0; i < 100; i++) {
+    average = average + a->citizens[i].fitness;
+  }
+  average = average / 100;
+  a->averageFitness = average;
+  a->bestFitness = a->citizens[0].fitness;
+  a->worstFitness = a->citizens[99].fitness;
+}
+
+void generationMutate (Population *a, int mutationRate) {
+  int nodeA = 0;
+  int nodeB = 0;
+  int tmpInt;
+  list<int>::iterator it;
+  list<int>::iterator it2;
+  //list<int>::iterator it3;
+  for (int i = 0; i < 100; i++) {
+    //cout << mutationRate << endl;
+    if (random (mutationRate) == 0) {
+      while (nodeA == nodeB) {
+	nodeA = random (100);
+	nodeB = random (100);
+      }
+      it = a->citizens[i].tour.begin();
+      it2 = a->citizens[i].tour.begin();
+      advance (it, nodeA);
+      advance (it2, nodeB);
+      //cout << *it << " " << *it2;
+      /*
+      cout << endl;
+      it3 = a->citizens[i].tour.begin();
+      cout << "prior to swap" << endl;
+      while (it3 != a->citizens[i].tour.end()) {
+	cout << *it3 << " ";
+	it3++;
+      }
+      cout << endl;
+      */      
+      a->citizens[i].tour.insert(it, *it2);
+      a->citizens[i].tour.insert(it2, *it);
+      it = a->citizens[i].tour.erase(it);
+      it2 = a->citizens[i].tour.erase(it2);
+      a->citizens[i].fitness = routeDistance (a->citizens[i].tour, points, totalCount);
+      /*
+      it3 = a->citizens[i].tour.begin();
+      cout << endl;
+      cout << "post swap" << endl;
+      while (it3 != a->citizens[i].tour.end()) {
+	cout << *it3 << " ";
+	it3++;
+      }
+      cout << endl;
+      */
+      cout << "Mutate: " << i << "\tSwapping " << nodeA << " and " << nodeB << endl;
+    }
+    nodeA = 0;
+    nodeB = 0;
+  }
+}
+
+void printWorld (Population *a) {
+  cout << "World stats \tBest: " << a->bestFitness << "\tAverage: " << a->averageFitness << "\tWorst: " << a->worstFitness << endl; 
+  for (int i = 0; i < 100; i++) {
+    cout << "--[RANK: " << i << " FITNESS: " << a->citizens[i].fitness << "]--" << endl;
+    for (list<int>::iterator it = a->citizens[i].tour.begin(); it != a->citizens[i].tour.end(); it++) {
+      cout << *it << " ";
+    }
+    cout << endl << endl;
+  }
 }
 
 int main (int argc, char *argv[]) {
@@ -134,17 +225,15 @@ int main (int argc, char *argv[]) {
     cout << "Include file name when executing." << endl;
     return 0;
   }
+  srand (unsigned (time (0)));
+  int mutationRate = 5;
   totalCount = readFile (argv[1], points);
   Population world;
-  generatePopulation(&world);
-  
-  for (int i = 0; i < 100; i++) {
-    cout << "-----------id: " << i << "------------fitness: " << world.citizens[i].fitness <<  "-----------" << endl;
-    for (list<int>::iterator it = world.citizens[i].tour.begin(); it != world.citizens[i].tour.end(); it++) {
-      cout << *it << " ";
-    }
-    cout << endl << endl;
-  }
+  generatePopulation (&world);
+  generationMutate (&world, mutationRate);
+  generationSort (&world);
+  generationStats (&world);
+  printWorld (&world);
   
 
   /*
