@@ -13,17 +13,20 @@
 
 using namespace std;
 
+// keeps track of point data for cities
 typedef struct Point {
   int id;
   double x, y;
 } Point;
 
+// keeps track of route data
 typedef struct Chromo {
   int rank;
   list<int> tour;
   double fitness;
 } Chromo;
 
+// keeps track of the population
 typedef struct Population {
   int generation;
   double averageFitness, bestFitness, worstFitness;
@@ -34,10 +37,13 @@ typedef struct Population {
 Point points[100];
 int totalCount = 100;
 list<int> bestRoute;
-int populationSize = 100;
-int populationKill = 40;
-int crossoverSize = 5;
+int populationSize = 1000;
+int populationKill = 100;
+int crossoverSize = 3;
+int mutationRate = 100;
+int generations = 20000;
 
+// function to check if a path is valid or not
 bool validPath (list<int> a) {
   vector<int> b;
   for (int i = 0; i < (int)a.size(); i++) {
@@ -59,6 +65,7 @@ bool validPath (list<int> a) {
   return true;
 }
 
+// function used for visualization
 static void do_drawing(cairo_t *cr) {
   cairo_set_source_rgb(cr, 0, 0, 255);
   cairo_set_line_width(cr, 1);
@@ -70,7 +77,9 @@ static void do_drawing(cairo_t *cr) {
   }
   cairo_set_source_rgb(cr, 0, 0, 0);
   list<int>::iterator it = bestRoute.begin();
-  for (int i = 0; i < totalCount; i++) {
+  list<int>::iterator it2 = bestRoute.end();
+  it2--;
+  while (it != it2) {
     cairo_move_to(cr, 9*points[*it].x, 9*points[*it].y);
     it++;
     cairo_line_to(cr, 9*points[*it].x, 9*points[*it].y);
@@ -96,17 +105,20 @@ static void do_drawing(cairo_t *cr) {
 
 }
 
+// graphics function
 static gboolean on_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
   do_drawing(cr);
   return false;
 }
 
+// used to insert data into a point structure
 void insert (Point *point, int i, double x, double y) {
   point->id = i;
   point->x = x;
   point->y = y;
 }
 
+// reads a file and inserts points and creates an array of cities
 int readFile (char * fileName, Point *points) {
   string buffer;
   string tmp;
@@ -140,10 +152,12 @@ int readFile (char * fileName, Point *points) {
   return count;
 }
 
+// function to calculate distance between two points
 double distanceCalc (Point firstPoint, Point secondPoint) {
   return sqrt(pow((secondPoint.x - firstPoint.x),2) + pow((secondPoint.y - firstPoint.y),2));
 }
 
+// function to calculate the total distance for a route
 double routeDistance (list<int> route, Point *points, int numPoints) {
   double distance = 0;
   list<int>::iterator it = route.begin();
@@ -161,8 +175,12 @@ double routeDistance (list<int> route, Point *points, int numPoints) {
   return distance;
 }
 
+// function to generate random numbers
 int random (int i) { return std::rand()%i; }
 
+// function that generates a population
+// each citizen has a random path
+// path fitness is calculated
 void generatePopulation (Population *a) {
   a->generation = 0;
   vector<int> b;
@@ -188,6 +206,8 @@ void generatePopulation (Population *a) {
   }
 }
 
+// the population is sorted by fitness
+// fittest will have lower index values
 void generationSort (Population *a) {
   vector<Chromo> b;
   vector<Chromo> c = a->citizens;
@@ -218,18 +238,21 @@ void generationSort (Population *a) {
   }
 }
 
+// generates stats such as fittest, average, and least fit
 void generationStats (Population *a) {
   //cout << "Gen stats" << endl;
   double average = 0;
-  for (int i = 0; i < totalCount; i++) {
+  for (int i = 0; i < populationSize; i++) {
     average = average + a->citizens[i].fitness;
   }
-  average = average / totalCount;
+  average = (average / (double)populationSize);
   a->averageFitness = average;
   a->bestFitness = a->citizens[0].fitness;
   a->worstFitness = a->citizens[populationSize-1].fitness;
 }
 
+// has a chance to mutate a citizen based on mutation rate
+// this uses a swap where two cities in a route will be swapped
 void generationMutate (Population *a, int mutationRate) {
   int nodeA = 0;
   int nodeB = 0;
@@ -256,13 +279,14 @@ void generationMutate (Population *a, int mutationRate) {
   }
 }
 
+// print function used to print data about the population
 void printWorld (Population *a) {
   
-  cout << a->generation << "," << a->bestFitness << "," << a->averageFitness << "," << a->worstFitness << endl;
+  //cout << a->generation << "," << a->bestFitness << "," << a->averageFitness << "," << a->worstFitness << endl;
   
   cout << "World stats \tGeneration: " << a->generation << "\tBest: " << a->bestFitness << "\tAverage: " << a->averageFitness << "   " << "\tWorst: " << a->worstFitness << endl; 
   
-  
+  /*
   for (int i = 0; i < 10; i++) {
     cout << "--[RANK: " << i << " FITNESS: " << a->citizens[i].fitness << "]--" << endl;
     for (list<int>::iterator it = a->citizens[i].tour.begin(); it != a->citizens[i].tour.end(); it++) {
@@ -270,15 +294,17 @@ void printWorld (Population *a) {
     }
     cout << endl << endl;
   }
-  
+  */
 }
 
+// function used to kill unfit citizens
 void generationKill (Population *a) {
   for (int i = 0; i < populationKill; i++) {
     a->citizens.pop_back();
   }
 }
 
+// used to get a percent gradient for mating
 double getPercent (int a) {
   if (a < 15) {
     return 0.8;
@@ -297,8 +323,8 @@ double getPercent (int a) {
   }
 }
 
+// parents mating using partially mapped crossover
 list<int> mate (list<int> parent, list<int> cross, int site) {
-  //cout << "Mating ----------" << endl;
   list<int> child;
   list<int>::iterator ptr1 = parent.begin();
   list<int>::iterator ptr2 = cross.begin();
@@ -311,40 +337,16 @@ list<int> mate (list<int> parent, list<int> cross, int site) {
     ptr2++;
   }
   ptr1 = parent.begin();
-  advance (ptr1, site+5);
+  advance (ptr1, site+crossoverSize);
   while (ptr1 != parent.end()) {
     child.push_back(*ptr1);
     ptr1++;
   }
-  /*
-  ptr1 = parent.begin();
-  cout << "[Parent] ";
-  while (ptr1 != parent.end()) {
-    cout << *ptr1 << " ";
-    ptr1++;
-  }
-  cout << endl;
-  cout << "[Cross] ";
-  ptr1 = cross.begin();
-  while (ptr1 != cross.end()) {
-    cout << *ptr1 << " ";
-    ptr1++;
-  }
-  cout << endl;
-  ptr1 = child.begin();
-  cout << "[Child] ";
-  while (ptr1 != child.end()) {
-    cout << *ptr1 << " ";
-    ptr1++;
-  }
-  cout << endl;
-  */
-  //  cout << child.size() << endl;
   return child;
 }
 
+// the crossovers used is deduped
 void dedupeCross (list<int> *cross1, list<int> *cross2) {
-  //cout << "-------Dedupe Cross------" << endl;
   bool matched = false;
   list <int> tmp1;
   list <int> tmp2;
@@ -361,7 +363,6 @@ void dedupeCross (list<int> *cross1, list<int> *cross2) {
     tmp2.push_back(*ptr1);
     ptr1++;
   }
-
   ptr1 = tmp1.begin();
   ptr2 = tmp2.begin();
   while (ptr1 != tmp1.end()) {
@@ -397,24 +398,11 @@ void dedupeCross (list<int> *cross1, list<int> *cross2) {
   }
   *cross1 = c1;
   *cross2 = c2;
-  /*
-  ptr1 = cross1->begin();
-  while (ptr1 != cross1->end()) {
-    cout << *ptr1 << " ";
-    ptr1++;
-  }
-  cout << endl;
-  ptr1 = cross2->begin();
-  while (ptr1 != cross2->end()) {
-    cout << *ptr1 << " ";
-    ptr1++;
-  }
-  cout << endl;
-  */
 }
 
+// dedupe the offspring
+// so it will be a valid route
 void dedupeChild (list<int> *child, list<int> cross1, list<int> cross2, int site) {
-  //cout << "----DEDUP CHILD----" << site <<endl;
   bool matched = false;
   list<int> tmpc1 = cross1;
   list<int> tmpc2 = cross2;
@@ -433,12 +421,10 @@ void dedupeChild (list<int> *child, list<int> cross1, list<int> cross2, int site
   stop = tmpChild.begin();
   advance (stop, site);
   while (ptr != stop) {
-    //    cout << *ptr << " ";
     matched = false;
     c1ptr = tmpc1.begin();
     while (c1ptr != tmpc1.end()) {
       if (*ptr == *c1ptr) {
-	//cout << *c1ptr << " ";
 	matched = true;
       }
       c1ptr++;
@@ -452,14 +438,10 @@ void dedupeChild (list<int> *child, list<int> cross1, list<int> cross2, int site
 	tmpc2.pop_front();
       }
     }
-    
     ptr++;
   }
-  //cout << endl;
-    
   start = tmpChild.begin();
-  advance (start, site+5);
-
+  advance (start, site+crossoverSize);
   while (ptr != start) {
     buffer.push_back(*ptr);
     ptr++;
@@ -467,12 +449,10 @@ void dedupeChild (list<int> *child, list<int> cross1, list<int> cross2, int site
   
   ptr = start;
   while (ptr != tmpChild.end()) {
-    //cout << *ptr << " ";
     matched = false;
     c1ptr = tmpc1.begin();
     while (c1ptr != tmpc1.end()) {
       if (*ptr == *c1ptr) {
-	//cout << *c1ptr << " ";
 	matched = true;
       }
       c1ptr++;
@@ -489,13 +469,18 @@ void dedupeChild (list<int> *child, list<int> cross1, list<int> cross2, int site
     }
     ptr++;
   }
-  //cout << endl;
-  //cout << "Buffer size: " << buffer.size() << endl;
   validPath (buffer);
   *child = buffer;
 
 }
 
+// partially mapped crossover
+// basically picks a location
+// two parents are picked
+// childA has parentB crossover mapped onto it
+// childB has parentA crossover mapped onto it
+// offspring are deduped so they will be valid routes
+// the offspring are then added to the population
 void pmxCrossover (Population *a) {
   generationKill(a);
   int count = 0;
@@ -506,23 +491,11 @@ void pmxCrossover (Population *a) {
   list<int> crossB;
   list<int> childA;
   list<int> childB;
-  vector<int> aCross;
-  vector<int> tmpA;
-  vector<int> bCross;
-  vector<int> tmpB;
-  vector<int>::iterator itCrossA = aCross.begin();
-  vector<int>::iterator itCrossB = bCross.begin();
-  list<int>::iterator itParentA1;
-  list<int>::iterator itParentA2;
-  list<int>::iterator itParentB1;
-  list<int>::iterator itParentB2;
-  list<int>::iterator itChild1;
-  list<int>::iterator itChild2;
   list<int>::iterator ptr;
   double chance = 0;
   // need to replace 40 children
   // two created at a time
-  while (count != 40) {
+  while (count != populationKill) {
     // select two different parents
     while (parentA == parentB) {
       parentA = random (populationSize - populationKill);
@@ -537,11 +510,11 @@ void pmxCrossover (Population *a) {
     // mating successful initiate PMX Crossover
     if (random((1/chance)) == 0) {
       // select where crossover site will occur
-      crossoverSite = random (totalCount-4);
+      crossoverSite = random (totalCount-crossoverSize-1);
 
       ptr = a->citizens[parentB].tour.begin();
       advance(ptr, crossoverSite);
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < crossoverSize; i++) {
 	crossB.push_back(*ptr);
 	ptr++;
       }
@@ -549,7 +522,7 @@ void pmxCrossover (Population *a) {
  
       ptr = a->citizens[parentA].tour.begin();
       advance(ptr, crossoverSite);
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < crossoverSize; i++) {
  	crossA
 	  .push_back(*ptr);
 	ptr++;
@@ -579,98 +552,8 @@ void pmxCrossover (Population *a) {
       crossA.clear();
       crossB.clear();
 
-      /*
-
-      // removes duplicate nodes in the child
-      ptr = childA.begin();
-      itChild1 = childA.begin();
-      itChild2 = childA.begin();
-      advance (itChild1, crossoverSite);
-      advance (itChild2, crossoverSite + 5);
-      cout << *itChild2 << endl;
-      itCrossA = aCross.begin();
-      itCrossB = bCross.begin();
-      tmpA = aCross;
-      tmpB = bCross;
-      while (ptr != childA.end()) {
-	if (ptr == itChild1) {
-	  ptr = itChild2;
-	}
-	itCrossB = bCross.begin();
-	while (itCrossB != bCross.end()) {
-	  if (*ptr == *itCrossB) {
-	    //cout << "Equal " << *ptr << " Inserting: " << *itCrossA <<  endl;
-	    childA.insert(ptr, *itCrossA);
-	    ptr = childA.erase(ptr);
-	    itCrossB = bCross.erase(itCrossB);
-	    itCrossA = aCross.erase(itCrossA);
-	    if (itCrossB == bCross.end()) {
-	      break;
-	    }
-	  }
-	  itCrossB++;
-	}
-	if (ptr == childA.end()) {
-	  break;
-	}
-	ptr++;
-      }
-      ptr = childB.begin();
-      itChild1 = childB.begin();
-      itChild2 = childB.begin();
-      advance (itChild1, crossoverSite);
-      advance (itChild2, crossoverSite + 5);
-      itCrossA = aCross.begin();
-      itCrossB = bCross.begin();
-      aCross = tmpA;
-      bCross = tmpB;
-      while (ptr != childB.end()) {
-	if (ptr == itChild1) {
-	  ptr = itChild2;
-	}
-	itCrossA = aCross.begin();
-	while (itCrossA != aCross.end()) {
-	  if (*ptr == *itCrossA) {
-	    //cout << "Equal " << *ptr << " Inserting: " << *itCrossB <<  endl;
-	    childB.insert(ptr, *itCrossB);
-	    ptr = childB.erase(ptr);
-	    itCrossB = bCross.erase(itCrossB);
-	    itCrossA = aCross.erase(itCrossA);
-	    if (itCrossA == aCross.end()) {
-	      break;
-	    }
-	  }
-	  itCrossA++;
-	}
-	if (ptr == childB.end()) {
-	  break;
-	}
-	ptr++;
-      }
-      */
-
-      
       Chromo temp;
-      /*
-      if (validPath (childA) == false) {
-	ptr = childA.begin();
-	cout << "A: ";
-	while (ptr != childA.end()) {
-	  cout << *ptr << " ";
-	  ptr++;
-	}
-	cout << endl;
-      }
-      if (validPath (childB) == false) {
-	ptr = childB.begin();
-	cout << "B: ";
-	while (ptr != childB.end()) {
-	  cout << *ptr << " ";
-	  ptr++;
-	}
-	cout << endl;
-      }
-      */
+
       temp.tour = childA;
       temp.fitness = routeDistance (childA, points, totalCount);
       temp.rank = 60+count;
@@ -681,8 +564,6 @@ void pmxCrossover (Population *a) {
       a->citizens.push_back(temp);        
       count = count+2;
     }
-    aCross.clear();
-    bCross.clear();
     childA.clear();
     childB.clear();
     chance = 0;
@@ -698,26 +579,30 @@ int main (int argc, char *argv[]) {
     return 0;
   }
   srand (unsigned (time (0)));
-  int mutationRate = 5;
   totalCount = readFile (argv[1], points);
   Population world;
   generatePopulation (&world);
-  for (int i = 0; i<500; i++) {
+  for (int i = 0; i<generations; i++) {
     generationMutate (&world, mutationRate);
     pmxCrossover (&world);
     generationSort (&world);
     generationStats (&world);
-    //printWorld (&world);
+    if (i%50 == 0) {
+      printWorld (&world);
+    }
     world.generation++;
   }
   bestRoute = world.citizens[0].tour;
   validPath(bestRoute);
+  /*
   list<int>::iterator iter = bestRoute.begin();
   while (iter != bestRoute.end()) {
     cout << *iter << " ";
     iter++;
   }
+  */
   cout << endl;
+  // stuff to create graphics
   GtkWidget *window;
   GtkWidget *darea;
   gtk_init(&argc,&argv);
@@ -728,7 +613,7 @@ int main (int argc, char *argv[]) {
   g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
   gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
   gtk_window_set_default_size(GTK_WINDOW(window), 1000, 1000);
-  gtk_window_set_title(GTK_WINDOW(window), "TSP - Greedy");
+  gtk_window_set_title(GTK_WINDOW(window), "TSP - PMX Crossover");
   gtk_widget_show_all(window);
   gtk_main();
   return 0;
