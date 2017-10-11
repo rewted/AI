@@ -40,7 +40,7 @@ int crossoverSize = 5;
 
 bool validPath (list<int> a) {
   vector<int> b;
-  for (int i = 0; i < a.size(); i++) {
+  for (int i = 0; i < (int)a.size(); i++) {
     b.push_back(0);
   }
   list<int>::iterator it = a.begin();
@@ -60,7 +60,7 @@ bool validPath (list<int> a) {
 }
 
 static void do_drawing(cairo_t *cr) {
-  cairo_set_source_rgb(cr, 0, 0, 0);
+  cairo_set_source_rgb(cr, 0, 0, 255);
   cairo_set_line_width(cr, 1);
 
   for (int i = 0; i < totalCount; i++) {
@@ -68,17 +68,32 @@ static void do_drawing(cairo_t *cr) {
     cairo_stroke_preserve(cr);
     cairo_fill(cr);
   }
+  cairo_set_source_rgb(cr, 0, 0, 0);
   list<int>::iterator it = bestRoute.begin();
-  for (int i = 0; i < totalCount-1; i++) {
-    cairo_move_to(cr, 9*points[*it-1].x, 9*points[*it-1].y);
+  for (int i = 0; i < totalCount; i++) {
+    cairo_move_to(cr, 9*points[*it].x, 9*points[*it].y);
     it++;
-    cairo_line_to(cr, 9*points[*it-1].x, 9*points[*it-1].y);
+    cairo_line_to(cr, 9*points[*it].x, 9*points[*it].y);
   }
+  cairo_stroke(cr);
+  cairo_set_source_rgb(cr, 0, 255, 0);
+  cairo_arc(cr, 9*points[*bestRoute.begin()].x, 9*points[*bestRoute.begin()].y, 8, 0, 2*M_PI);
+  cairo_stroke_preserve(cr);
+  cairo_fill(cr);
+  cairo_set_source_rgb(cr, 255, 0, 0);
+  it = bestRoute.end();
+  it--;
+  cairo_arc(cr, 9*points[*it].x, 9*points[*it].y, 8, 0, 2*M_PI);
+  cairo_stroke_preserve(cr);
+  cairo_fill(cr);
+  /*
   it = bestRoute.begin();
   cairo_move_to(cr, 9*points[*it-1].x, 9*points[*it-1].y);
   advance(it,totalCount-1);
   cairo_line_to(cr, 9*points[*it-1].x, 9*points[*it-1].y);
+  */
   cairo_stroke(cr);
+
 }
 
 static gboolean on_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
@@ -282,18 +297,221 @@ double getPercent (int a) {
   }
 }
 
+list<int> mate (list<int> parent, list<int> cross, int site) {
+  //cout << "Mating ----------" << endl;
+  list<int> child;
+  list<int>::iterator ptr1 = parent.begin();
+  list<int>::iterator ptr2 = cross.begin();
+  for (int i = 0; i < site; i++) {
+    child.push_back(*ptr1);
+    ptr1++;
+  }
+  for (int i = 0; i < crossoverSize; i++) {
+    child.push_back(*ptr2);
+    ptr2++;
+  }
+  ptr1 = parent.begin();
+  advance (ptr1, site+5);
+  while (ptr1 != parent.end()) {
+    child.push_back(*ptr1);
+    ptr1++;
+  }
+  /*
+  ptr1 = parent.begin();
+  cout << "[Parent] ";
+  while (ptr1 != parent.end()) {
+    cout << *ptr1 << " ";
+    ptr1++;
+  }
+  cout << endl;
+  cout << "[Cross] ";
+  ptr1 = cross.begin();
+  while (ptr1 != cross.end()) {
+    cout << *ptr1 << " ";
+    ptr1++;
+  }
+  cout << endl;
+  ptr1 = child.begin();
+  cout << "[Child] ";
+  while (ptr1 != child.end()) {
+    cout << *ptr1 << " ";
+    ptr1++;
+  }
+  cout << endl;
+  */
+  //  cout << child.size() << endl;
+  return child;
+}
+
+void dedupeCross (list<int> *cross1, list<int> *cross2) {
+  //cout << "-------Dedupe Cross------" << endl;
+  bool matched = false;
+  list <int> tmp1;
+  list <int> tmp2;
+  list <int> c1;
+  list <int> c2;
+  list <int>::iterator ptr1 = cross1->begin();
+  list <int>::iterator ptr2;
+  while (ptr1 != cross1->end()) {
+    tmp1.push_back(*ptr1);
+    ptr1++;
+  }
+  ptr1 = cross2->begin();
+  while (ptr1 != cross2->end()) {
+    tmp2.push_back(*ptr1);
+    ptr1++;
+  }
+
+  ptr1 = tmp1.begin();
+  ptr2 = tmp2.begin();
+  while (ptr1 != tmp1.end()) {
+    matched = false;
+    ptr2 = tmp2.begin();
+    while (ptr2 != tmp2.end()) {
+      if (*ptr1 == *ptr2) {
+	matched = true;
+      }
+      ptr2++;
+    }
+    if (!matched) {
+      c1.push_back(*ptr1);
+    }
+    ptr1++;
+  }
+
+  ptr1 = tmp1.begin();
+  ptr2 = tmp2.begin();
+  while (ptr2 != tmp2.end()) {
+    matched = false;
+    ptr1 = tmp1.begin();
+    while (ptr1 != tmp1.end()) {
+      if (*ptr2 == *ptr1) {
+	matched = true;
+      }
+      ptr1++;
+    }
+    if (!matched) {
+      c2.push_back(*ptr2);
+    }
+    ptr2++;
+  }
+  *cross1 = c1;
+  *cross2 = c2;
+  /*
+  ptr1 = cross1->begin();
+  while (ptr1 != cross1->end()) {
+    cout << *ptr1 << " ";
+    ptr1++;
+  }
+  cout << endl;
+  ptr1 = cross2->begin();
+  while (ptr1 != cross2->end()) {
+    cout << *ptr1 << " ";
+    ptr1++;
+  }
+  cout << endl;
+  */
+}
+
+void dedupeChild (list<int> *child, list<int> cross1, list<int> cross2, int site) {
+  //cout << "----DEDUP CHILD----" << site <<endl;
+  bool matched = false;
+  list<int> tmpc1 = cross1;
+  list<int> tmpc2 = cross2;
+  list<int> tmpChild;
+  list<int> buffer;
+  list<int>::iterator stop;
+  list<int>::iterator start;
+  list<int>::iterator ptr;
+  list<int>::iterator c1ptr;
+  ptr = child->begin();
+  while (ptr != child->end()) {
+    tmpChild.push_back(*ptr);
+    ptr++;
+  }
+  ptr = tmpChild.begin();
+  stop = tmpChild.begin();
+  advance (stop, site);
+  while (ptr != stop) {
+    //    cout << *ptr << " ";
+    matched = false;
+    c1ptr = tmpc1.begin();
+    while (c1ptr != tmpc1.end()) {
+      if (*ptr == *c1ptr) {
+	//cout << *c1ptr << " ";
+	matched = true;
+      }
+      c1ptr++;
+    }
+    if (!matched) {
+      buffer.push_back(*ptr);
+    }
+    if (matched) {
+      buffer.push_back(*tmpc2.begin());
+      if (tmpc2.size() > 0) {
+	tmpc2.pop_front();
+      }
+    }
+    
+    ptr++;
+  }
+  //cout << endl;
+    
+  start = tmpChild.begin();
+  advance (start, site+5);
+
+  while (ptr != start) {
+    buffer.push_back(*ptr);
+    ptr++;
+  }
+  
+  ptr = start;
+  while (ptr != tmpChild.end()) {
+    //cout << *ptr << " ";
+    matched = false;
+    c1ptr = tmpc1.begin();
+    while (c1ptr != tmpc1.end()) {
+      if (*ptr == *c1ptr) {
+	//cout << *c1ptr << " ";
+	matched = true;
+      }
+      c1ptr++;
+    }
+    if (!matched) {
+      buffer.push_back(*ptr);
+    }
+   
+    if (matched) {
+      buffer.push_back(*tmpc2.begin());
+      if (tmpc2.size() > 0) {
+	tmpc2.pop_front();
+      }
+    }
+    ptr++;
+  }
+  //cout << endl;
+  //cout << "Buffer size: " << buffer.size() << endl;
+  validPath (buffer);
+  *child = buffer;
+
+}
+
 void pmxCrossover (Population *a) {
   generationKill(a);
   int count = 0;
   int parentA = 0;
   int parentB = 0;
   int crossoverSite;
+  list<int> crossA;
+  list<int> crossB;
   list<int> childA;
   list<int> childB;
   vector<int> aCross;
   vector<int> tmpA;
   vector<int> bCross;
   vector<int> tmpB;
+  vector<int>::iterator itCrossA = aCross.begin();
+  vector<int>::iterator itCrossB = bCross.begin();
   list<int>::iterator itParentA1;
   list<int>::iterator itParentA2;
   list<int>::iterator itParentB1;
@@ -301,8 +519,6 @@ void pmxCrossover (Population *a) {
   list<int>::iterator itChild1;
   list<int>::iterator itChild2;
   list<int>::iterator ptr;
-  double percentA = 0;
-  double percentB = 0;
   double chance = 0;
   // need to replace 40 children
   // two created at a time
@@ -321,141 +537,49 @@ void pmxCrossover (Population *a) {
     // mating successful initiate PMX Crossover
     if (random((1/chance)) == 0) {
       // select where crossover site will occur
-      crossoverSite = random (totalCount-5);
-      cout << "----------------" << endl;
-      cout << "Do cross over: " << count << " at site: " << crossoverSite << endl;
-      itParentA1 = a->citizens[parentA].tour.begin();
-      itParentA2 = a->citizens[parentA].tour.begin();
-      itParentB1 = a->citizens[parentB].tour.begin();
-      itParentB2 = a->citizens[parentB].tour.begin();
-      advance (itParentA1, crossoverSite);
-      advance (itParentA2, crossoverSite + 5);
-      advance (itParentB1, crossoverSite);
-      advance (itParentB2, crossoverSite + 5);
-      cout << *itParentA1 << " " << *itParentA2 << " " << *itParentB1 << " " << *itParentB2 << endl;
-      ptr = a->citizens[parentA].tour.begin();
+      crossoverSite = random (totalCount-4);
 
-      // some print functions for logs
-      while (ptr != a->citizens[parentA].tour.end()) {
-	cout << *ptr << " ";
-	ptr++;
-      }
-      cout << endl;
       ptr = a->citizens[parentB].tour.begin();
-      while (ptr != a->citizens[parentB].tour.end()) {
-	cout << *ptr << " ";
+      advance(ptr, crossoverSite);
+      for (int i = 0; i < 5; i++) {
+	crossB.push_back(*ptr);
 	ptr++;
       }
-      cout << endl;
-
-
-      
-      cout << "----- children ----" << endl;
-      // Starting to create childA
+      childA = mate (a->citizens[parentA].tour, crossB, crossoverSite);
+ 
       ptr = a->citizens[parentA].tour.begin();
-      while (ptr != a->citizens[parentA].tour.end()) {
-	childA.push_back(*ptr);
-	ptr++;
-	if (ptr == itParentA1) {
-	  ptr = itParentB1;
-	}
-	if (ptr == itParentB2) {
-	  ptr = itParentA2;
-	}
-      }
-      ptr = childA.begin();
-      while (ptr != childA.end()) {
-	cout << *ptr << " ";
+      advance(ptr, crossoverSite);
+      for (int i = 0; i < 5; i++) {
+ 	crossA
+	  .push_back(*ptr);
 	ptr++;
       }
-      cout << endl;
-      // Starting to create childB
-      ptr = a->citizens[parentB].tour.begin();
-      while (ptr != a->citizens[parentB].tour.end()) {
-	childB.push_back(*ptr);
-	ptr++;
-	if (ptr == itParentB1) {
-	  ptr = itParentA1;
-	}
-	if (ptr == itParentA2) {
-	  ptr = itParentB2;
-	}
-      }
+      childB = mate (a->citizens[parentB].tour, crossA, crossoverSite);
       ptr = childB.begin();
-      while (ptr != childB.end()) {
+
+      dedupeCross (&crossA, &crossB);
+      ptr = crossA.begin();
+      /*
+      while (ptr != crossA.end()) {
 	cout << *ptr << " ";
 	ptr++;
-      }      
+      }
       cout << endl;
-
-      
-      // getting values for deduping
-      ptr = itParentA1;
-      cout << "[ ";
-      while (ptr != itParentA2) {
-	cout << *ptr << " ";
-	aCross.push_back(*ptr);
-	ptr++;
-      }
-      // getting values for deduping
-      ptr = itParentB1;
-      cout <<"]----[ ";
-      while (ptr != itParentB2) {
-	bCross.push_back(*ptr);
+      ptr = crossB.begin();
+      while (ptr != crossB.end()) {
 	cout << *ptr << " ";
 	ptr++;
       }
-      cout << "]" << endl;
-      // deduping crossing values
-      //cout << "Deduping" <<endl;
-      vector<int>::iterator itCrossA = aCross.begin();
-      vector<int>::iterator itCrossB = bCross.begin();
-      while (itCrossA != aCross.end()) {
-	itCrossB = bCross.begin();
-	while (itCrossB != bCross.end()) {
-	  if (*itCrossA == *itCrossB) {
-	    //cout << "Erasing: " << *itCrossA << endl;
-	    itCrossA = aCross.erase(itCrossA);
-	    itCrossB = bCross.erase(itCrossB);
-	    if (itCrossB == bCross.end() || itCrossA == aCross.end()) {
-	      //cout << "B: Deleting an end" << endl;
-	      break;
-	    }
-	  }
-	  itCrossB++;
-	}
-	if (itCrossA == aCross.end()) {
-	  //cout << "A: deleting an end" << endl;
-	  break;
-	}
-	itCrossA++;
-      }
-      itCrossA = aCross.begin();
-      itCrossB = bCross.begin();
-      cout << "[ ";
-      while (itCrossA != aCross.end()) {
-	cout << *itCrossA << " ";
-	itCrossA++;
-      }
-      cout << "] [ ";
-      while (itCrossB != bCross.end()) {
-	cout << *itCrossB << " ";
-	itCrossB++;
-      }
-
-      cout << "]" << endl;
       
-      /*
-      for (list<int>::iterator a = childB.begin(); a != childB.end(); a++) {
-	cout << *a << " ";
-      }
+      cout << endl;
       */
-      //cout << endl << endl;
+      dedupeChild (&childA, crossB, crossA, crossoverSite);
+      dedupeChild (&childB, crossA, crossB, crossoverSite);
+      
+      crossA.clear();
+      crossB.clear();
+
       /*
-      for (list<int>::iterator a = childB.begin(); a != childB.end(); a++) {
-	cout << *a << " ";
-      }
-      */
 
       // removes duplicate nodes in the child
       ptr = childA.begin();
@@ -463,7 +587,7 @@ void pmxCrossover (Population *a) {
       itChild2 = childA.begin();
       advance (itChild1, crossoverSite);
       advance (itChild2, crossoverSite + 5);
-		     cout << *itChild2 << endl;
+      cout << *itChild2 << endl;
       itCrossA = aCross.begin();
       itCrossB = bCross.begin();
       tmpA = aCross;
@@ -523,12 +647,11 @@ void pmxCrossover (Population *a) {
 	}
 	ptr++;
       }
-      for (list<int>::iterator a = childB.begin(); a != childB.end(); a++) {
-	//cout << *a << " ";
-      }
-      //cout << endl << endl;
-      Chromo temp;
+      */
+
       
+      Chromo temp;
+      /*
       if (validPath (childA) == false) {
 	ptr = childA.begin();
 	cout << "A: ";
@@ -547,6 +670,7 @@ void pmxCrossover (Population *a) {
 	}
 	cout << endl;
       }
+      */
       temp.tour = childA;
       temp.fitness = routeDistance (childA, points, totalCount);
       temp.rank = 60+count;
