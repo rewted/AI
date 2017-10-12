@@ -38,10 +38,10 @@ Point points[100];
 int totalCount = 100;
 list<int> bestRoute;
 int populationSize = 200;
-int populationKill = 15;
-int crossoverSize = 50;
-int mutationRate = 50;
-int generations = 10000;
+int populationKill = 20;
+int crossoverSize = 3;
+int mutationRate = 10;
+int generations = 50000;
 
 // function to check if a path is valid or not
 bool validPath (list<int> a) {
@@ -253,7 +253,7 @@ void generationStats (Population *a) {
 }
 
 // has a chance to mutate a citizen based on mutation rate
-// this uses a swap where two cities in a route will be swapped
+// generates a new random path
 void generationMutate (Population *a, int mutationRate) {
   int nodeA = 0;
   int nodeB = 0;
@@ -269,15 +269,35 @@ void generationMutate (Population *a, int mutationRate) {
       it2 = a->citizens[i].tour.begin();
       advance (it, nodeA);
       advance (it2, nodeB);
+      a->citizens[i].tour.insert(it, *it2);
       a->citizens[i].tour.insert(it2, *it);
       it = a->citizens[i].tour.erase(it);
+      it2 = a->citizens[i].tour.erase(it2);
       a->citizens[i].fitness = routeDistance (a->citizens[i].tour, points, totalCount);
     }
     nodeA = 0;
     nodeB = 0;
   }
 }
+/* // mutates entire path by generating a random new one
+void generationMutate (Population *a, int mutationRate) {
 
+  for (int i = 0; i < populationSize; i++) {
+    if (random (mutationRate) == 0) {
+      a->citizens[i].tour.clear();
+      vector<int> b;
+      for (int i = 0; i < totalCount; i++) {
+	b.push_back(i);
+      }
+      random_shuffle (b.begin(), b.end());
+      for (vector<int>::iterator it = b.begin(); it != b.end(); it++) {
+	a->citizens[i].tour.push_back(*it);
+      }      
+    }
+
+  }
+}
+*/
 
 
 // print function used to print data about the population
