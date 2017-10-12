@@ -37,11 +37,11 @@ typedef struct Population {
 Point points[100];
 int totalCount = 100;
 list<int> bestRoute;
-int populationSize = 1000;
-int populationKill = 100;
-int crossoverSize = 3;
-int mutationRate = 100;
-int generations = 20000;
+int populationSize = 200;
+int populationKill = 15;
+int crossoverSize = 50;
+int mutationRate = 50;
+int generations = 10000;
 
 // function to check if a path is valid or not
 bool validPath (list<int> a) {
@@ -130,7 +130,8 @@ int readFile (char * fileName, Point *points) {
     cout << "File failed to load" << endl;
   }
 
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i
+	 < 7; i++) {
     getline (tspFile, buffer);
   }
 
@@ -163,12 +164,12 @@ double routeDistance (list<int> route, Point *points, int numPoints) {
   list<int>::iterator it = route.begin();
   list<int>::iterator it2 = route.begin();
   advance(it2, numPoints-1);
-  distance = distanceCalc (points[*it-1], points[*it2-1]);
+  distance = distanceCalc (points[*it], points[*it2]);
 
   it2 = route.begin();
   it2++;
   while (it2 != route.end()) {
-    distance = distance + distanceCalc (points[*it-1], points[*it2-1]);
+    distance = distance + distanceCalc (points[*it], points[*it2]);
     it++;
     it2++;
   }
@@ -268,10 +269,8 @@ void generationMutate (Population *a, int mutationRate) {
       it2 = a->citizens[i].tour.begin();
       advance (it, nodeA);
       advance (it2, nodeB);
-      a->citizens[i].tour.insert(it, *it2);
       a->citizens[i].tour.insert(it2, *it);
       it = a->citizens[i].tour.erase(it);
-      it2 = a->citizens[i].tour.erase(it2);
       a->citizens[i].fitness = routeDistance (a->citizens[i].tour, points, totalCount);
     }
     nodeA = 0;
@@ -279,12 +278,14 @@ void generationMutate (Population *a, int mutationRate) {
   }
 }
 
+
+
 // print function used to print data about the population
 void printWorld (Population *a) {
   
-  //cout << a->generation << "," << a->bestFitness << "," << a->averageFitness << "," << a->worstFitness << endl;
+  cout << a->generation << "," << a->bestFitness << "," << a->averageFitness << "," << a->worstFitness << endl;
   
-  cout << "World stats \tGeneration: " << a->generation << "\tBest: " << a->bestFitness << "\tAverage: " << a->averageFitness << "   " << "\tWorst: " << a->worstFitness << endl; 
+  //cout << "World stats \tGeneration: " << a->generation << "\tBest: " << a->bestFitness << "\tAverage: " << a->averageFitness << "   " << "\tWorst: " << a->worstFitness << endl; 
   
   /*
   for (int i = 0; i < 10; i++) {
@@ -594,13 +595,13 @@ int main (int argc, char *argv[]) {
   }
   bestRoute = world.citizens[0].tour;
   validPath(bestRoute);
-  /*
+
   list<int>::iterator iter = bestRoute.begin();
   while (iter != bestRoute.end()) {
     cout << *iter << " ";
     iter++;
   }
-  */
+
   cout << endl;
   // stuff to create graphics
   GtkWidget *window;
