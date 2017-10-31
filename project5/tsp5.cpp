@@ -1,3 +1,11 @@
+/* 
+   James Culver
+   CECS 545 - Project 5
+   Some notes to keep it from breaking:
+   populationKill has to be even, having an odd will cause a segmentation fault
+   This is due to child creation being done in groups of 2. 
+ */
+
 #include <iostream>
 #include <list>
 #include <algorithm>
@@ -10,6 +18,7 @@
 #include <sstream>
 #include <cairo.h>
 #include <gtk/gtk.h>
+#include <iomanip>
 
 using namespace std;
 
@@ -34,14 +43,16 @@ typedef struct Population {
 } Population;
 
 // Global Variables
-Point points[100];
-int totalCount = 100;
+Point points[222];
+int totalCount = 222;
 list<int> bestRoute;
-int populationSize = 200;
-int populationKill = 20;
+int populationSize = 50;
+int populationKill = 10;
 int crossoverSize = 3;
 int mutationRate = 10;
-int generations = 10000;
+int generations = 5000;
+int numOfBest = 30;
+int matrix [222][222];
 
 // function to check if a path is valid or not
 bool validPath (list<int> a) {
@@ -235,7 +246,7 @@ void generationSort (Population *a) {
     c.erase(tmpIt);
   }
   a->citizens = b;
-  for (int j = 0; j < totalCount; j++) {
+  for (int j = 0; j < populationSize; j++) {
     a->citizens[j].rank = i;
   }
 }
@@ -493,7 +504,6 @@ void dedupeChild (list<int> *child, list<int> cross1, list<int> cross2, int site
   }
   validPath (buffer);
   *child = buffer;
-
 }
 
 // partially mapped crossover
@@ -545,8 +555,7 @@ void pmxCrossover (Population *a) {
       ptr = a->citizens[parentA].tour.begin();
       advance(ptr, crossoverSite);
       for (int i = 0; i < crossoverSize; i++) {
- 	crossA
-	  .push_back(*ptr);
+ 	crossA.push_back(*ptr);
 	ptr++;
       }
       childB = mate (a->citizens[parentB].tour, crossA, crossoverSite);
@@ -595,6 +604,107 @@ void pmxCrossover (Population *a) {
 
 }
 
+//template <size_t s>
+list<int> WOCPath () {
+  list<int> path;
+  vector<int> validSearch;
+
+  // generate a vector with valid search parameters
+  for (int i = 0; i < totalCount; i++) {
+    validSearch.push_back(1);
+  }
+  int highest = -99999;
+  int x, y;
+  // find the most agreed on edge
+  for (int i = 0; i < totalCount; i++) {
+    for (int j = 0; j < totalCount; j++) {
+      if (matrix[i][j] > highest && i != j) {
+	highest = matrix[i][j];
+	x = i;
+	y = j;
+	cout << "Found: " << x << " " << y << endl;
+      }
+    }
+  }
+  path.push_back(x);
+  path.push_back(y);
+  validSearch[x] = 0;
+  while (path.size() != (size_t)totalCount) {
+    x = y;
+    highest = -99999;
+    for (int j = 0; j < totalCount; j++) {
+      if (validSearch[j] != 0 && x != j) {
+	if (matrix[x][j] > highest) {
+	  highest = matrix[x][y];
+	  y = j;
+	}
+      }
+    }
+    cout << "Pushing: " << y << endl;
+    path.push_back(y);
+    validSearch[x] = 0;
+  }
+
+  validPath (path);
+  list<int>::iterator it = path.begin();
+  while (it != path.end()) {
+    cout << *it << " ";
+    it++;
+  }
+  cout << endl;
+  vector<int>::iterator it2 = validSearch.begin();
+  while ( it2 != validSearch.end()) {
+    cout << *it2 << " ";
+    it2++;
+  }
+  cout << endl;
+  return path;
+}
+
+void generateAdjMatrix (Population *a) {
+  //int matrix[totalCount][totalCount];
+  // initialize adj matrix to all 0s
+  for (int i = 0; i < totalCount; i++) {
+    for (int j = 0; j < totalCount; j++) {
+      matrix[i][j] = 0;
+    }
+  }
+
+  // generates adj matrix
+  for (int i = 0; i < populationSize; i++) {
+    list<int>::iterator itF = a->citizens[i].tour.begin();
+    list<int>::iterator itB = a->citizens[i].tour.end();
+    itB--;
+    // start and finish nodes connected together
+    matrix[*itF][*itB]++;
+    list<int>::iterator itBuff;
+    for (int j = 0; j < totalCount; j++) {
+      if ( itF != a->citizens[i].tour.end()) {
+	itBuff = itF;
+	itBuff++;
+	matrix[*itF][*itBuff]++;
+	itF++;
+      }
+      /*
+      if (itB != a->citizens[i].tour.begin()) {
+	itBuff = itB;
+	itBuff--;
+	matrix[*itB][*itBuff]++;
+	itB--;
+      }
+      */
+    }
+  }
+
+  for (int i = 0; i < totalCount; i++) {
+    for (int j = 0; j < totalCount; j++) {
+      cout << setw(3) << matrix[i][j];
+    }
+    cout << endl;
+  }
+  bestRoute = WOCPath ();
+}
+
 int main (int argc, char *argv[]) {
   if (argc < 2) {
     cout << "Include file name when executing." << endl;
@@ -606,19 +716,30 @@ int main (int argc, char *argv[]) {
   Chromo tmpChromo;
   vector<Chromo> tmpCitizens;
 
-  generatePopulation (&world);
-for (int i = 0; i<generations; i++) {
+  for (int j = 0; j < numOfBest; j++) {
+    generatePopulation (&world);
+    for (int i = 0; i<generations; i++) {
       generationMutate (&world, mutationRate);
       pmxCrossover (&world);
       generationSort (&world);
       generationStats (&world);
-	if (i%50 == 0) {
+      if (i%50 == 0) {
 	printWorld (&world);
-	}
+      }
       world.generation++;
     }
     bestRoute = world.citizens[0].tour;
     validPath(bestRoute);
+    tmpChromo.tour = bestRoute;
+    tmpChromo.fitness = world.citizens[0].fitness;
+    tmpCitizens.push_back(tmpChromo);
+  }
+  world.citizens = tmpCitizens;
+  // population has changed from initial pop for GA
+  // to population for number selected for WOC
+  populationSize = numOfBest;
+  generationSort (&world);
+  generateAdjMatrix (&world);
   
   /*
   for (int i = 0; i < populationSize; i++) {
@@ -668,7 +789,7 @@ for (int i = 0; i<generations; i++) {
   }
 
   cout << "]" << endl;
-*/
+  */
   // stuff to create graphics
   GtkWidget *window;
   GtkWidget *darea;
@@ -680,7 +801,7 @@ for (int i = 0; i<generations; i++) {
   g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
   gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
   gtk_window_set_default_size(GTK_WINDOW(window), 1000, 1000);
-  gtk_window_set_title(GTK_WINDOW(window), "TSP - PMX Crossover");
+  gtk_window_set_title(GTK_WINDOW(window), "TSP - Wisdom of Crowds");
   gtk_widget_show_all(window);
   gtk_main();
   return 0;
