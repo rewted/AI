@@ -46,12 +46,12 @@ typedef struct Population {
 Point points[222];
 int totalCount = 222;
 list<int> bestRoute;
-int populationSize = 50;
-int populationKill = 10;
+int populationSize = 40;
+int populationKill = 8;
 int crossoverSize = 3;
 int mutationRate = 10;
-int generations = 5000;
-int numOfBest = 30;
+int generations = 2500;
+int numOfBest = 100;
 int matrix [222][222];
 
 // function to check if a path is valid or not
@@ -604,6 +604,104 @@ void pmxCrossover (Population *a) {
 
 }
 
+double cost(int n1, int n2) {
+  double agreement = matrix[n1][n2];
+  double total = numOfBest;
+  double distance = distanceCalc (points[n1], points[n2]);
+  distance = distance * distance;
+  //cout << "Agreement: " << agreement << " Total: " << total << " Distance: " << distance << endl;
+  double cost = (1-(agreement/total));
+  return cost;
+}
+
+list<int> WOCPath () {
+  list<int> path;
+  vector<int> valid;
+  vector<list<int>> candidates;
+  int neighbor1 = -1;
+  int n1 = -1;
+  int neighbor2 = -1;
+  int n2 = -1;
+  bool updateHighest = false;
+
+  for (int i = 0; i < totalCount; i++) {
+    candidates.push_back(path);
+    valid.push_back(1);
+  }
+  
+  for (int i = 0; i < totalCount; i++) {
+    neighbor1 = -1;
+    neighbor2 = -1;
+    n1 = -1;
+    n2 = -1;
+    for (int j = 0; j < totalCount; j++) {
+      if (matrix[i][j] > n1) {
+	updateHighest = false;
+	if (matrix[i][j] > n2) {
+	  updateHighest = true;
+	}
+	if (updateHighest) {
+	  n1 = n2;
+	  neighbor1 = neighbor2;
+	  n2 = matrix[i][j];
+	  neighbor2 = j;
+	}
+	else {
+	  neighbor1 = j;
+	  n1 = matrix[i][j];
+	}
+      }
+    }
+    cout << i << ". " << neighbor2 << " " << neighbor1 << endl;
+    candidates[i].push_back(neighbor2);
+    candidates[i].push_back(neighbor1);
+  }
+    int index;
+    int prev;
+  while (path.size() < (size_t)totalCount) {
+    if (path.size() == 0) {
+      index = 0;
+      path.push_back(0);
+      valid[0] = 0;
+      cout << "Adding: 0" << endl;
+    }
+    if (path.size() > 0) {
+      prev = index;
+      index = candidates[prev].front();
+      if (valid[index] != 1) {
+	candidates[prev].pop_front();
+	index = candidates[prev].front();
+      }
+      if (valid[index] == 1) {
+	candidates[prev].pop_front();
+	path.push_back(index);
+	valid[index] = 0;
+	cout << "Adding: " << index << endl;
+      }
+      else {
+	cout << "Invalid, inserting a greedy valid choice" << endl;
+	int bestNode = -1;
+	int bestDistance = 999999;
+	for (int i = 0; i < (int)valid.size(); i++) {
+	  if (valid[i] == 1) {
+	    if (distanceCalc (points[prev], points[i]) < bestDistance) {
+	      bestNode = i;
+	      bestDistance = distanceCalc (points[prev], points[i]);
+	    }
+	  }
+	}
+	path.push_back(bestNode);
+	valid[bestNode] = 0;
+	index = bestNode;
+      }
+    }
+  }
+  validPath(path);
+  return path;
+}
+
+
+/*
 //template <size_t s>
 list<int> WOCPath () {
   list<int> path;
@@ -613,13 +711,13 @@ list<int> WOCPath () {
   for (int i = 0; i < totalCount; i++) {
     validSearch.push_back(1);
   }
-  int highest = -99999;
+  int highest = 99999;
   int x, y;
   // find the most agreed on edge
   for (int i = 0; i < totalCount; i++) {
     for (int j = 0; j < totalCount; j++) {
-      if (matrix[i][j] > highest && i != j) {
-	highest = matrix[i][j];
+      if (cost(i, j) < highest && i != j) {
+	highest = cost(i, j);
 	x = i;
 	y = j;
 	cout << "Found: " << x << " " << y << endl;
@@ -631,16 +729,17 @@ list<int> WOCPath () {
   validSearch[x] = 0;
   while (path.size() != (size_t)totalCount) {
     x = y;
-    highest = -99999;
+    highest = 99999;
     for (int j = 0; j < totalCount; j++) {
       if (validSearch[j] != 0 && x != j) {
-	if (matrix[x][j] > highest) {
-	  highest = matrix[x][y];
+	if (cost (x, j) < highest) {
+	  highest = cost (x, j);
 	  y = j;
 	}
       }
     }
     cout << "Pushing: " << y << endl;
+    cout << "X: " << x << " " << "Y: " << y << " Cost: " << cost(x, y) << endl;
     path.push_back(y);
     validSearch[x] = 0;
   }
@@ -652,14 +751,18 @@ list<int> WOCPath () {
     it++;
   }
   cout << endl;
+  //
   vector<int>::iterator it2 = validSearch.begin();
+  
   while ( it2 != validSearch.end()) {
     cout << *it2 << " ";
     it2++;
   }
   cout << endl;
+  // 
   return path;
 }
+*/
 
 void generateAdjMatrix (Population *a) {
   //int matrix[totalCount][totalCount];
@@ -703,7 +806,10 @@ void generateAdjMatrix (Population *a) {
     cout << endl;
   }
   bestRoute = WOCPath ();
+  cout << "Route Distance: " << routeDistance (bestRoute, points, totalCount) << endl;
 }
+
+
 
 int main (int argc, char *argv[]) {
   if (argc < 2) {
@@ -740,6 +846,7 @@ int main (int argc, char *argv[]) {
   populationSize = numOfBest;
   generationSort (&world);
   generateAdjMatrix (&world);
+
   
   /*
   for (int i = 0; i < populationSize; i++) {
